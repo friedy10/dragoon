@@ -7,6 +7,7 @@
 *.dll
 *.so
 *.dylib
+client/client
 
 # Test binary, built with `go test -c`
 *.test

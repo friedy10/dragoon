@@ -129,7 +129,7 @@ func (gdb *Gdb) Exit() error {
 	// If we do not wait for this, Wait() might clean up stdout
 	// while recordReader is still using it, leading to
 	// panic: read |0: bad file descriptor
-	<-gdb.recordReaderDone
+	// <-gdb.recordReaderDone
 
 	if err := gdb.cmd.Wait(); err != nil {
 		return err

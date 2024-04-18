@@ -2,26 +2,20 @@ package main
 
 import (
 	"fmt"
-    "io"
-    "os"
+	"io"
+	"os"
 )
 
 
 
 
 func main() {
-	// An SSH client is represented with a ClientConn.
-	//
-	// To authenticate with the remote server you must pass at least one
-	// implementation of AuthMethod via the Auth field in ClientConfig,
-	// and provide a HostKeyCallback.
-
-    if len(os.Args) != 2 {
+    	if len(os.Args) != 2 {
 		fmt.Println("Usage: ./client raspberry@ip_address")
 		return
 	}
 
-    sshConnection := os.Args[1]
+    	sshConnection := os.Args[1]
 	fmt.Printf("Enter password for %s: ", sshConnection)
 
 	// Turn off echoing for password input

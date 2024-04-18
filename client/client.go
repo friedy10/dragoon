@@ -4,36 +4,36 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-    "os"
-    "syscall"
-    "strings"
+    	"os"
+	"io"
 	"dragoon/gdbmi"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 type Client struct {
-    hostKey ssh.PublicKey
-    config *ssh.ClientConfig
-    conn *ssh.Client
-    buffer bytes.Buffer
-    sess *ssh.Session
+	hostKey ssh.PublicKey
+    	config *ssh.ClientConfig
+    	conn *ssh.Client
+    	buffer bytes.Buffer
+    	sess *ssh.Session
 }
 
-func (client Client) Connect(user string, ip string, pass string) int {
+func (client *Client) Connect(user string, ip string, pass string) error {
 	client.config = &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.AuthMethod{
 			ssh.Password(pass),
 		},
-		HostKeyCallback: ssh.FixedHostKey(client.hostKey),
+		// TODO: include hostkey to prevent MITM
+		// HostKeyCallback: ssh.FixedHostKey(client.hostKey),
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
     
-    var err error
+    	var err error
 	client.conn, err = ssh.Dial("tcp", ip + ":22", client.config)
 	if err != nil {
 		log.Fatal("Failed to dial: ", err)
-        return -1
+        	return err
 	}
 	
 	// Each ClientConn can support multiple interactive sessions,
@@ -47,25 +47,27 @@ func (client Client) Connect(user string, ip string, pass string) int {
 	// the remote side using the Run method.
 	client.sess.Stdout = &client.buffer
 
-    return 0
+    	return nil
 }
 
-func (client Client) runCmd(cmd string){
-    if err := client.sess.Run(cmd); err != nil {
-        fmt.Println("Failed to start server.")
-    }
+func (client *Client) RunCmd(cmd string) error {
+	if err := client.sess.Run(cmd); err != nil {
+        	fmt.Println("Failed to start server.")
+    	}
 
-    fmt.Println(client.buffer.String())
+    	fmt.Println(client.buffer.String())
+
+	return nil
 }
 
-func (client Client) close(){
-    fmt.Println("Closing connection")
-    client.conn.Close()
-    client.sess.Close()
+func (client *Client) Close(){
+	fmt.Println("Closing connection")
+    	client.conn.Close()
+    	client.sess.Close()
 }
 
-func (client Client) breakpoint(){
-    fmt.Println("Dragoon")
+func (client *Client) Breakpoint(){
+	fmt.Println("Dragoon")
 
     	// start a new instance and pipe the target output to stdout
 	gdb, _ := gdb.New(nil)
@@ -82,5 +84,4 @@ func (client Client) breakpoint(){
 	gdb.Send("exec-run")
 
 	gdb.Exit()
-
 }
