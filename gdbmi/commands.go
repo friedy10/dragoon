@@ -44,7 +44,7 @@ func (gdb *Gdb) Send(operation string, arguments ...string) (map[string]interfac
 	buffer.WriteByte('\n')
 
 	// send the command
-	if _, err := gdb.stdin.Write(buffer.Bytes()); err != nil {
+	if _, err := (*gdb.stdin).Write(buffer.Bytes()); err != nil {
 		return nil, err
 	}
 
@@ -81,7 +81,7 @@ func (gdb *Gdb) CheckedSend(operation string, arguments ...string) (map[string]i
 }
 
 func (gdb *Gdb) recordReader() {
-	scanner := bufio.NewScanner(gdb.stdout)
+	scanner := bufio.NewScanner(*gdb.stdout)
 	for scanner.Scan() {
 		// scan the GDB output one line at a time skipping the GDB terminator
 		line := scanner.Text()

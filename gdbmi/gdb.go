@@ -1,25 +1,36 @@
 package gdb
 
 import (
-	"github.com/kr/pty"
 	"io"
-	"os"
-	"os/exec"
 	"sync"
+	"strings"
 )
+
+type Backend interface {
+	Exec(cmd string) error
+
+	Wait() error
+
+	Exit()
+	
+	// Read reads a number of bytes from the target program's output.
+	Read() (out string, err error)
+	
+	// Write writes a number of bytes to the target program's input.
+	Write(p []byte) (n int, err error)
+}
 
 // Gdb represents a GDB instance. It implements the ReadWriter interface to
 // read/write data from/to the target program's TTY.
 type Gdb struct {
-	io.ReadWriter
-
-	ptm *os.File
-	pts *os.File
-	cmd *exec.Cmd
+	// The backend contains the methods for executing commands, 
+	// writing parameters, and reading input
+	cmd Backend
+	
+	stdin  *io.Writer
+	stdout *io.Reader
 
 	mutex  sync.RWMutex
-	stdin  io.WriteCloser
-	stdout io.ReadCloser
 
 	sequence int64
 	pending  map[string]chan map[string]interface{}
@@ -32,63 +43,30 @@ type Gdb struct {
 // New creates and starts a new GDB instance. onNotification if not nil is the
 // callback used to deliver to the client the asynchronous notifications sent by
 // GDB. It returns a pointer to the newly created instance handled or an error.
-func New(onNotification NotificationCallback) (*Gdb, error) {
-	return NewCustom([]string{"gdb"}, onNotification)
+func New(onNotification NotificationCallback, stdin *io.Writer, 
+			stdout *io.Reader, cmd Backend) (*Gdb, error) {
+	return NewCustom([]string{"gdb"}, onNotification, stdin, stdout, cmd)
 }
 
 // Like New, but allows to specify the GDB executable path and arguments.
-func NewCustom(gdbCmd []string, onNotification NotificationCallback) (*Gdb, error) {
-	// open a new terminal (master and slave) for the target program, they are
-	// both saved so that they are nore garbage collected after this function
-	// ends
-	ptm, pts, err := pty.Open()
-	if err != nil {
-		return nil, err
-	}
+func NewCustom(gdbCmd []string, onNotification NotificationCallback,stdin *io.Writer, 
+			stdout *io.Reader, cmd Backend) (*Gdb, error) {
+	gdbCmd = append(gdbCmd, "--nx", "--quiet", "--interpreter=mi2")
+	gdb, err := NewCmd(gdbCmd, onNotification, stdin, stdout, cmd)
 
-	// create GDB command
-	gdbCmd = append(gdbCmd, "--nx", "--quiet", "--interpreter=mi2", "--tty", pts.Name())
-	gdb, err := NewCmd(gdbCmd, onNotification)
-
-	if err != nil {
-		ptm.Close()
-		pts.Close()
-		return nil, err
-	}
-
-	gdb.ptm = ptm
-	gdb.pts = pts
-
-	return gdb, nil
+	return gdb, err
 }
 
 // NewCmd creates a new GDB instance like New, but allows explicitely passing
 // the gdb command to run (including all arguments). cmd is passed as-is to
 // exec.Command, so the first element should be the command to run, and the
 // remaining elements should each contain a single argument.
-func NewCmd(cmd []string, onNotification NotificationCallback) (*Gdb, error) {
+func NewCmd(cmd []string, onNotification NotificationCallback, stdin *io.Writer, 
+			stdout *io.Reader, cmd Backend) (*Gdb, error) {
 	gdb := Gdb{onNotification: onNotification}
 
-	gdb.cmd = exec.Command(cmd[0], cmd[1:]...)
-
-	// GDB standard input
-	stdin, err := gdb.cmd.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
-	gdb.stdin = stdin
-
-	// GDB standard ouput
-	stdout, err := gdb.cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	gdb.stdout = stdout
-
-	// start GDB
-	if err := gdb.cmd.Start(); err != nil {
-		return nil, err
-	}
+	// TODO FIX ARRAY STUFF
+	gdb.cmd.exec(strings.Join(cmd, " "))
 
 	// prepare the command interface
 	gdb.sequence = 1
@@ -96,32 +74,27 @@ func NewCmd(cmd []string, onNotification NotificationCallback) (*Gdb, error) {
 
 	gdb.recordReaderDone = make(chan bool)
 
+	gdb.cmd = cmd
+	gdb.stdin = stdin
+	gdb.stdout = stdout
+	
 	// start the line reader
 	go gdb.recordReader()
 
 	return &gdb, nil
 }
 
-// Read reads a number of bytes from the target program's output.
-func (gdb *Gdb) Read(p []byte) (n int, err error) {
-	return gdb.ptm.Read(p)
-}
-
-// Write writes a number of bytes to the target program's input.
-func (gdb *Gdb) Write(p []byte) (n int, err error) {
-	return gdb.ptm.Write(p)
-}
-
 // Interrupt sends a signal (SIGINT) to GDB so it can stop the target program
 // and resume the processing of commands.
 func (gdb *Gdb) Interrupt() error {
-	return gdb.cmd.Process.Signal(os.Interrupt)
+	return nil	
+//return gdb.cmd.Process.Signal(os.Interrupt)
 }
 
 // Exit sends the exit command to GDB and waits for the process to exit.
 func (gdb *Gdb) Exit() error {
 	// send the exit command and wait for the GDB process
-	if _, err := gdb.Send("gdb-exit"); err != nil {
+	if _, err := gdb.cmd.Write([]byte("gdb-exit")); err != nil {
 		return err
 	}
 
@@ -140,16 +113,8 @@ func (gdb *Gdb) Exit() error {
 	// Gdb object ,i.e., the master side will never return EOF (at least on
 	// Linux) so the only way to stop reading is to intercept the I/O error
 	// caused by closing the terminal
-	if gdb.ptm != nil {
-		if err := gdb.ptm.Close(); err != nil {
-			return err
-		}
-	}
-	if gdb.pts != nil {
-		if err := gdb.pts.Close(); err != nil {
-			return err
-		}
-	}
+	
+	gdb.cmd.Exit()
 
 	return nil
 }
