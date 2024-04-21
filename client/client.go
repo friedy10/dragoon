@@ -9,7 +9,7 @@ import (
 )
 
 type Client struct {
-	gdb.Backend
+	gdbmi.Backend
 	hostKey ssh.PublicKey
     	config *ssh.ClientConfig
     	conn *ssh.Client
@@ -59,12 +59,10 @@ func (client *Client) RunCmd(cmd string) error {
 	return nil
 }
 
-func (client *Client) Exit() error {
+func (client *Client) Exit() {
 	fmt.Println("Closing connection")
     	client.conn.Close()
     	client.sess.Close()
-	
-	return nil
 }
 
 func (client* Client) Exec(cmd string) error {
@@ -93,13 +91,13 @@ func (client* Client) Write(p []byte) (n int, err error) {
 	var buf bytes.Buffer
 	client.sess.Stdin = &buf
 	
-	_, err := buf.write(p)
+	_, err = buf.Write(p)
 
 	if err != nil {
 		log.Fatal("Failed to set program input: ", err)
 	}
 
-	return nil
+	return len(p), nil
 }
 
 // func (client *Client) Breakpoint(){

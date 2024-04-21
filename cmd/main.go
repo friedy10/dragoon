@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"gdbmi/gdb"
-	"gdbmi/client"
+	"log"
+	"syscall"
+	"strings"
+	"dragoon/gdbmi"
+	"dragoon/client"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 func main() {
@@ -34,32 +38,32 @@ func main() {
 	fmt.Println("Password:", password)
 
 
-	var client Client
-	var gdb Gdb
 	{
+		var c *client.Client
+		var g *gdbmi.Gdb
 
-		err := client.Connect("pi", "192.168.1.1", "raspberry")
+		err := c.Connect("pi", "192.168.1.1", "raspberry")
 		if err != nil {
-			t.Fatal(err)	
+			log.Fatal(err)	
 		}
 
 
-		gdb, _ := gdb.New(nil, client, &client.sess.Stdin, &client.sess.Stdout)
+		g, _ = gdbmi.New(nil, (*c).sess.Stdin, (*c).sess.Stdout, c)
 		
 		// Do we need this?
-		go io.Copy(os.Stdout, gdb)
+		go io.Copy(os.Stdout, g)
 
 		// evaluate an expression
-		gdb.Send("var-create", "x", "@", "40 + 2")
-		fmt.Println(gdb.Send("var-evaluate-expression", "x"))
+		g.Send("var-create", "x", "@", "40 + 2")
+		fmt.Println(g.Send("var-evaluate-expression", "x"))
 
 		// load and run a program
-		gdb.Send("file-exec-file", "wc")
-		gdb.Send("exec-arguments", "-w")
-		gdb.Write([]byte("This sentence has five words.\n\x04")) // EOT
-		gdb.Send("exec-run")
+		g.Send("file-exec-file", "wc")
+		g.Send("exec-arguments", "-w")
+		g.cmd.Write([]byte("This sentence has five words.\n\x04")) // EOT
+		g.Send("exec-run")
 
-		gdb.Exit()	
+		g.Exit()	
 	}
 }
 

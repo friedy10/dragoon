@@ -1,4 +1,4 @@
-package gdb
+package gdbmi
 
 import (
 	"io"
@@ -44,15 +44,15 @@ type Gdb struct {
 // callback used to deliver to the client the asynchronous notifications sent by
 // GDB. It returns a pointer to the newly created instance handled or an error.
 func New(onNotification NotificationCallback, stdin *io.Writer, 
-			stdout *io.Reader, cmd Backend) (*Gdb, error) {
-	return NewCustom([]string{"gdb"}, onNotification, stdin, stdout, cmd)
+			stdout *io.Reader, backend Backend) (*Gdb, error) {
+	return NewCustom([]string{"gdb"}, onNotification, stdin, stdout, backend)
 }
 
 // Like New, but allows to specify the GDB executable path and arguments.
 func NewCustom(gdbCmd []string, onNotification NotificationCallback,stdin *io.Writer, 
-			stdout *io.Reader, cmd Backend) (*Gdb, error) {
+			stdout *io.Reader, backend Backend) (*Gdb, error) {
 	gdbCmd = append(gdbCmd, "--nx", "--quiet", "--interpreter=mi2")
-	gdb, err := NewCmd(gdbCmd, onNotification, stdin, stdout, cmd)
+	gdb, err := NewCmd(gdbCmd, onNotification, stdin, stdout, backend)
 
 	return gdb, err
 }
@@ -62,11 +62,11 @@ func NewCustom(gdbCmd []string, onNotification NotificationCallback,stdin *io.Wr
 // exec.Command, so the first element should be the command to run, and the
 // remaining elements should each contain a single argument.
 func NewCmd(cmd []string, onNotification NotificationCallback, stdin *io.Writer, 
-			stdout *io.Reader, cmd Backend) (*Gdb, error) {
+			stdout *io.Reader, backend Backend) (*Gdb, error) {
 	gdb := Gdb{onNotification: onNotification}
 
 	// TODO FIX ARRAY STUFF
-	gdb.cmd.exec(strings.Join(cmd, " "))
+	gdb.cmd.Exec(strings.Join(cmd, " "))
 
 	// prepare the command interface
 	gdb.sequence = 1
@@ -74,7 +74,7 @@ func NewCmd(cmd []string, onNotification NotificationCallback, stdin *io.Writer,
 
 	gdb.recordReaderDone = make(chan bool)
 
-	gdb.cmd = cmd
+	gdb.cmd = backend
 	gdb.stdin = stdin
 	gdb.stdout = stdout
 	

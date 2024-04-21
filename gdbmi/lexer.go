@@ -1,4 +1,4 @@
-package gdb
+package gdbmi
 
 type tokenType int
 type lexerState int

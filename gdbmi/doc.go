@@ -25,6 +25,6 @@
 //     "&": "log"
 //
 // - the optional result list is stored into a tuple under the "payload" field.
-package gdb
+package gdbmi
 
 //go:generate goyacc -o grammar.go grammar.y

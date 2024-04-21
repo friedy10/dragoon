@@ -1,6 +1,6 @@
 // -*- go -*-
 %{
-    package gdb
+    package gdbmi
 
 	const (
 		terminator  = "(gdb) " // yes there's the trailing space
