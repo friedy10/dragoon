@@ -10,6 +10,7 @@
 client/client
 *.swp
 deps
+src/build
 
 # Test binary, built with `go test -c`
 *.test

@@ -1,13 +1,11 @@
 #ifndef GDBMI_HPP
 #define GDBMI_HPP
 
-#include "wxStringHash.h"
 #include <memory>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <wx/string.h>
 
 namespace gdbmi {
 enum eToken {
@@ -46,32 +44,32 @@ enum eLineType {
 };
 
 struct StringView {
-	const wxChar * m_pdata	= nullptr;
+	const char * m_pdata	= nullptr;
 	size_t		   m_length = 0;
 
-	wxString
+	std::string
 	to_string() const
 	{
 		if (!m_pdata) {
-			return wxString();
+			return std::string();
 		} else {
-			return wxString(m_pdata, m_length);
+			return std::string(m_pdata, m_length);
 		}
 	}
 
 	StringView() {}
-	StringView(const wxString & buffer)
+	StringView(const std::string & buffer)
 		: StringView(buffer.c_str(), buffer.length())
 	{
 	}
 
-	StringView(const wxChar * p, size_t len)
+	StringView(const char * p, size_t len)
 	{
 		m_pdata	 = p;
 		m_length = len;
 	}
 
-	const wxChar *
+	const char *
 	data() const
 	{
 		return m_pdata;
@@ -118,7 +116,7 @@ struct Node {
 
   private:
 	ptr_t
-	do_add_child(const wxString & name)
+	do_add_child(const std::string & name)
 	{
 		children.emplace_back(std::make_shared<Node>());
 		auto child	= children.back();
@@ -128,14 +126,14 @@ struct Node {
 	}
 
   public:
-	wxString							name;
-	wxString							value;	  // optional
+	std::string							name;
+	std::string							value;	  // optional
 	vec_t								children;
-	std::unordered_map<wxString, ptr_t> children_map;
+	std::unordered_map<std::string, ptr_t> children_map;
 
-	Node & find_child(const wxString & name) const;
+	Node & find_child(const std::string & name) const;
 	Node &
-	operator[](const wxString & name) const
+	operator[](const std::string & name) const
 	{
 		return find_child(name);
 	}
@@ -152,14 +150,14 @@ struct Node {
 	ptr_t
 	add_child()
 	{
-		wxString s;
+		std::stringstream s;
 		s << children.size();
-		return do_add_child(s);
+		return do_add_child(s.str());
 	}
 
-	ptr_t add_child(const wxString & name, const wxString & value = {});
+	ptr_t add_child(const std::string & name, const std::string & value = {});
 	bool
-	exists(const wxString & name) const
+	exists(const std::string & name) const
 	{
 		return children_map.count(name) > 0;
 	}
@@ -171,12 +169,12 @@ struct ParsedResult {
 	StringView	txid;				  //  optional
 	Node::ptr_t tree = std::make_shared<Node>();
 	Node &
-	operator[](const wxString & index) const
+	operator[](const std::string & index) const
 	{
 		return tree->find_child(index);
 	}
 	bool
-	exists(const wxString & name) const
+	exists(const std::string & name) const
 	{
 		return tree->exists(name);
 	}
@@ -188,7 +186,7 @@ class Parser
 	void parse_properties(Tokenizer * tokenizer, Node::ptr_t parent);
 
   public:
-	void parse(const wxString & buffer, ParsedResult * result);
+	void parse(const std::string & buffer, ParsedResult * result);
 	void print(Node::ptr_t node, int depth = 0);
 };
 }	 // namespace gdbmi

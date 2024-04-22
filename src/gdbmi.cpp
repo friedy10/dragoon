@@ -11,7 +11,7 @@
 thread_local gdbmi::Node emptyNode;
 
 namespace {
-std::unordered_map<wxString, gdbmi::eToken> words = {
+std::unordered_map<std::string, gdbmi::eToken> words = {
 	{"done", gdbmi::T_DONE},
 	{"running", gdbmi::T_RUNNING},
 	{"connected", gdbmi::T_CONNECTED},
@@ -21,22 +21,22 @@ std::unordered_map<wxString, gdbmi::eToken> words = {
 };
 
 void
-trim_both(wxString & str)
+trim_both(std::string & str)
 {
-	static wxString trimString(" \r\n\t\v");
+	static std::string trimString(" \r\n\t\v");
 	str.erase(0, str.find_first_not_of(trimString));
 	str.erase(str.find_last_not_of(trimString) + 1);
 }
 
 void
-strip_double_backslashes(wxString & str)
+strip_double_backslashes(std::string & str)
 {
-	wxString fixed_str;
+	std::string fixed_str;
 	fixed_str.reserve(str.length());
 
-	wxChar last_char = 0;
+	char last_char = 0;
 	for (size_t i = 0; i < str.length(); ++i) {
-		wxChar ch = str[i];
+		char ch = str[i];
 		if (ch == '\\' && last_char == '\\') {
 			// do nothing
 		} else if (ch == '"' && last_char == '\\') {
@@ -57,7 +57,7 @@ strip_double_backslashes(wxString & str)
 }	 // namespace
 
 gdbmi::Node::ptr_t
-gdbmi::Node::add_child(const wxString & name, const wxString & value)
+gdbmi::Node::add_child(const std::string & name, const std::string & value)
 {
 	auto c	 = do_add_child(name);
 	c->value = std::move(value);
@@ -135,7 +135,7 @@ gdbmi::Tokenizer::next_token(eToken * type)
 		return read_string(type);
 	} else {
 		auto	 w		= read_word(type);
-		wxString as_str = w.to_string();
+		std::string as_str = w.to_string();
 		if (words.count(as_str)) {
 			*type = words[as_str];
 			return w;
@@ -155,7 +155,7 @@ gdbmi::Tokenizer::read_string(eToken * type)
 	int	   state	 = STATE_NORMAL;
 	size_t start_pos = m_pos;
 	for (; m_pos < m_buffer.length(); ++m_pos) {
-		wxChar ch = m_buffer[m_pos];
+		char ch = m_buffer[m_pos];
 		switch (state) {
 			case STATE_NORMAL:
 				switch (ch) {
@@ -207,7 +207,7 @@ gdbmi::Tokenizer::read_word(eToken * type)
 }
 
 void
-gdbmi::Parser::parse(const wxString & buffer, ParsedResult * result)
+gdbmi::Parser::parse(const std::string & buffer, ParsedResult * result)
 {
 	gdbmi::Tokenizer tokenizer(buffer);
 	gdbmi::eToken	 token;
@@ -395,7 +395,7 @@ gdbmi::Parser::parse_properties(Tokenizer * tokenizer, Node::ptr_t parent)
 void
 gdbmi::Parser::print(Node::ptr_t node, int depth)
 {
-	std::cout << wxString(depth, ' ');
+	std::cout << std::string(depth, ' ');
 	if (!node->name.empty()) {
 		std::cout << node->name;
 	}
@@ -411,7 +411,7 @@ gdbmi::Parser::print(Node::ptr_t node, int depth)
 }
 
 gdbmi::Node &
-gdbmi::Node::find_child(const wxString & name) const
+gdbmi::Node::find_child(const std::string & name) const
 {
 	if (children_map.count(name) == 0) {
 		return emptyNode;

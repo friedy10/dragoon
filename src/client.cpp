@@ -35,7 +35,7 @@ class Client
 	{
 		ssh_options_set(session, SSH_OPTIONS_HOST, ip.c_str());
 		ssh_options_set(session, SSH_OPTIONS_USER, user.c_str());
-		ssh_options_set(session, SSH_OPTIONS_LOG_VERBOSITY, &amp; verbosity);
+		//ssh_options_set(session, SSH_OPTIONS_LOG_VERBOSITY, &amp; verbosity);
 
 		int rc = ssh_connect(session);
 		if (rc != SSH_OK) {
