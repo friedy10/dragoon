@@ -17,15 +17,18 @@ set(SOURCES
     gdbmi.hpp
     client.hpp
     client.cpp
-    network.cpp
-    network.hpp
 )
 
 
-set(SOURCES2
+set(GDBMI_TEST_SRCS
     gdbmi_test.cpp
     gdbmi.cpp
     gdbmi.hpp
+)
+
+set(NETWORK_SRCS
+    network.cpp
+    network.hpp
 )
 
 include_directories(/usr/local/include)
@@ -47,8 +50,13 @@ include_directories(${PCAP_INCLUDE_DIR})
 cmake_print_variables(OPENSSL_LIBRARY)
 
 add_executable(dragoon ${SOURCES})
-add_executable(gdbmi_test ${SOURCES2})
+add_executable(gdbmi_test ${GDBMI_TEST_SRCS})
+add_executable(dragoon_network ${NETWORK_SRCS})
+
+# Libs for dragoon
 target_link_libraries(dragoon PRIVATE crypto)
 #target_link_libraries(dragoon PRIVATE ${PCAP_LIBRARY})
-target_link_libraries(dragoon PUBLIC PcapPlusPlus::Pcap++)
 target_link_libraries(dragoon PRIVATE ssh)
+
+# Libs for dragoon_network
+target_link_libraries(dragoon_network PUBLIC PcapPlusPlus::Pcap++)

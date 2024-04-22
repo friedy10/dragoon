@@ -43,3 +43,10 @@ Network::create_dns_query(bool save, std::string fname,
 		writer2.close();
 	}
 }
+
+int
+main()
+{
+	std::cout << "Dragoon Network 0.0.1" << std::endl;
+	return 0;
+}
