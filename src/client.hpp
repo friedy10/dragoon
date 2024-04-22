@@ -1,6 +1,5 @@
-/*
- *	Copyright (c) 2024 Friedrich Doku (frd20@pitt.edu)
- */
+#pragma once
+
 #include <iostream>
 #include <string>
 #include <stdexcept>
@@ -8,12 +7,8 @@
 
 class Client
 {
-  private:
-	ssh_session session;
-	ssh_channel channel;
-	char buffer[1024];
 
-  public:
+public:
 	Client();
 
 	~Client();
@@ -22,8 +17,13 @@ class Client
 	connect(const std::string & user, const std::string & ip, const std::string & pass);
 
 	std::string
-	runCommand(const std::string & cmd);
+	run_command(const std::string & cmd);
 
 	void
 	disconnect();
+  
+private:
+	ssh_session session;
+	ssh_channel channel;
+	char buffer[1024];
 };

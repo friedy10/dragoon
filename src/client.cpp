@@ -53,7 +53,7 @@ Client::connect(const std::string & user, const std::string & ip, const std::str
 }
 
 std::string
-Client::runCommand(const std::string & cmd)
+Client::run_command(const std::string & cmd)
 {
 	if (!channel) {
 		throw std::runtime_error("Channel not opened.");
@@ -116,7 +116,7 @@ main(int argc, char** argv)
 		std::cout << "Enter process name to debug" << std::endl;
 		std::cin >> proc;
 	
-		std::string output = client->runCommand("ps aux | grep " + proc);
+		std::string output = client->run_command("ps aux | grep " + proc);
 		std::cout << output;
 
 		int pid;
@@ -127,7 +127,7 @@ main(int argc, char** argv)
 			<< pid << std::endl;
 		std::cin >> pid;	
 		
-		output = client->runCommand("gdb --interpreter=mi attach " +
+		output = client->run_command("gdb --interpreter=mi attach " +
 			std::to_string(pid) + " -ex cont");
 					
 		for(;;)
@@ -138,7 +138,7 @@ main(int argc, char** argv)
 		}
 	
 	
-		output = client->runCommand("ls -l");
+		output = client->run_command("ls -l");
 		std::cout << "Command output:\n"
 				  << output << std::endl;
 
