@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GDBMI_HPP
+#define GDBMI_HPP
 
 #include <memory>
 #include <sstream>
@@ -189,4 +190,4 @@ class Parser
 	void print(Node::ptr_t node, int depth = 0);
 };
 }	 // namespace gdbmi
-
+#endif

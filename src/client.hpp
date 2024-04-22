@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CLIENT_HPP
+#define CLIENT_HPP
 
 #include <iostream>
 #include <string>
@@ -27,3 +28,5 @@ private:
 	ssh_channel channel;
 	char buffer[1024];
 };
+
+#endif

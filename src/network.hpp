@@ -1,4 +1,5 @@
-#pragma once
+#ifndef NETWORK_HPP
+#define NETWORK_HPP
 
 #include <iostream>
 #include <vector>
@@ -24,3 +25,5 @@ public:
 	int create_dns_query(bool save, std::string fname, 
 				std::string srcip, std::string destip);
 };
+
+#endif
