@@ -1,5 +1,4 @@
-#ifndef GDBMI_HPP
-#define GDBMI_HPP
+#pragma once
 
 #include <memory>
 #include <sstream>
@@ -191,4 +190,3 @@ class Parser
 };
 }	 // namespace gdbmi
 
-#endif	  // GDBMI_HPP
