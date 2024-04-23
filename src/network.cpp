@@ -4,49 +4,173 @@ int
 Network::create_dns_query(bool save, std::string fname, 
 				std::string srcip, std::string destip)
 {
+	/* create ethernet layer */
+	pcpp::EthLayer eth_layer(pcpp::MacAddress("00:50:43:11:22:33"), 
+				pcpp::MacAddress("aa:bb:cc:dd:ee:ff"));
 
+	/* create ipv4 layer */
+	pcpp::IPv4Layer ip_layer(pcpp::IPv4Address(srcip.c_str()), pcpp::IPv4Address(destip.c_str()));
+	ip_layer.getIPv4Header()->ipId = pcpp::hostToNet16(2000);
+	ip_layer.getIPv4Header()->timeToLive = 64;
 
-	// create a new Ethernet layer
-	pcpp::EthLayer newEthernetLayer(pcpp::MacAddress("00:50:43:11:22:33"), pcpp::MacAddress("aa:bb:cc:dd:ee:ff"));
+	/* create udp layer */
+	pcpp::UdpLayer udp_layer(12345, 53);
 
-	// create a new IPv4 layer
-	pcpp::IPv4Layer newIPLayer(pcpp::IPv4Address(srcip.c_str()), pcpp::IPv4Address(destip.c_str()));
-	newIPLayer.getIPv4Header()->ipId = pcpp::hostToNet16(2000);
-	newIPLayer.getIPv4Header()->timeToLive = 64;
+	/* create dns layer */
+	pcpp::DnsLayer dns_layer;
+	dns_layer.addQuery("www.ebay.com", pcpp::DNS_TYPE_A, pcpp::DNS_CLASS_IN);
 
-	// create a new UDP layer
-	pcpp::UdpLayer newUdpLayer(12345, 53);
+	/* packet size 100 bytes */
+	pcpp::Packet new_packet(100);
 
-	// create a new DNS layer
-	pcpp::DnsLayer newDnsLayer;
-	newDnsLayer.addQuery("www.ebay.com", pcpp::DNS_TYPE_A, pcpp::DNS_CLASS_IN);
+	/* add layers to packet */
+	new_packet.addLayer(&eth_layer);
+	new_packet.addLayer(&ip_layer);
+	new_packet.addLayer(&udp_layer);
+	new_packet.addLayer(&dns_layer);
 
-	// create a packet with initial capacity of 100 bytes (will grow automatically if needed)
-	pcpp::Packet newPacket(100);
+	/* calculate computed fields */
+	new_packet.computeCalculateFields();
 
-	// add all the layers we created
-	newPacket.addLayer(&newEthernetLayer);
-	newPacket.addLayer(&newIPLayer);
-	newPacket.addLayer(&newUdpLayer);
-	newPacket.addLayer(&newDnsLayer);
-
-	// compute all calculated fields
-	newPacket.computeCalculateFields();
-
-	packetvect.push_back(newPacket);
+	this->packet_vect.push_back(new_packet);
 
 	if(save){
 		// write the new packet to a pcap file
 		pcpp::PcapFileWriterDevice writer2(fname);
 		writer2.open();
-		writer2.writePacket(*(newPacket.getRawPacket()));
+		writer2.writePacket(*(new_packet.getRawPacket()));
 		writer2.close();
 	}
+
+	return 0;
 }
 
 int
-main()
+Network::create_http_packet(bool save, std::string fname,
+				std::string srcip, std::string destip)
+{
+	pcpp::EthLayer eth_layer(pcpp::MacAddress("00:50:43:11:22:33"), 
+				pcpp::MacAddress("aa:bb:cc:dd:ee:ff"));
+	
+	pcpp::IPv4Layer ip_layer(pcpp::IPv4Address(srcip.c_str()), pcpp::IPv4Address(destip.c_str()));
+	ip_layer.getIPv4Header()->ipId = pcpp::hostToNet16(2000);
+	ip_layer.getIPv4Header()->timeToLive = 64;
+
+    	pcpp::TcpLayer tcp_layer(12345, 80);
+    	tcp_layer.getTcpHeader()->ackFlag = 1; // Set ACK flag
+    	tcp_layer.getTcpHeader()->windowSize = 8192; // Set window size
+
+    	pcpp::HttpRequestLayer http_layer(pcpp::HttpRequestLayer::HttpMethod::HttpGET,
+					"http://127.0.0.1:80",pcpp::HttpVersion::OneDotOne);
+
+	/* Inital size will be 100 (it grows as needed) */
+	pcpp::Packet new_packet(100);	
+	new_packet.addLayer(&eth_layer);
+	new_packet.addLayer(&ip_layer);
+	new_packet.addLayer(&tcp_layer);
+	new_packet.addLayer(&http_layer);
+	
+	/* calculate computed fields */
+	new_packet.computeCalculateFields();
+	
+	this->packet_vect.push_back(new_packet);
+
+	if(save){
+		// write the new packet to a pcap file
+		pcpp::PcapFileWriterDevice writer2(fname);
+		writer2.open();
+		writer2.writePacket(*(new_packet.getRawPacket()));
+		writer2.close();
+	}
+
+	return 0;
+}
+
+
+int
+Network::flood_attack(std::string interfaceip, std::string srcip, std::string destip)
+{
+	uint32_t n = std::thread::hardware_concurrency();
+	std::cout << "Running flood with " << n << " threads" << std::endl;
+
+
+	std::vector<std::thread> threads(n);
+
+	for(auto &t : threads){
+		t = std::thread([&]{
+			this->send_packets(interfaceip);
+		});
+		t.detach();
+	}
+	
+	std::cout << "Started " << n << " threads" << std::endl;
+}
+
+int
+Network::send_packets(std::string interface_ip)
+{
+	
+	std::unique_ptr<pcpp::PcapLiveDevice> dev = 
+	std::unique_ptr<pcpp::PcapLiveDevice>(pcpp::PcapLiveDeviceList::getInstance().
+						getPcapLiveDeviceByIp(interface_ip));
+
+	if (dev == nullptr)
+	{
+		std::cerr << "Cannot find interface with IPv4 address of '" 
+			<< interface_ip << "'" << std::endl;
+		return -1;
+	}
+
+	std::cout << "Interface info:" << std::endl 
+		<< "   Interface name:        " 
+		<< dev->getName() << std::endl 
+		<< "   Interface description: " 
+		<< dev->getDesc() << std::endl 
+		<< "   MAC address:           "
+		<< dev->getMacAddress() << std::endl 
+		<< "   Default gateway:       " 
+		<< dev->getDefaultGateway() << std::endl 
+		<< "   Interface MTU:         " 
+		<< dev->getMtu() << std::endl; 
+
+
+	// open the device before start capturing/sending packets
+	if (!dev->open())
+	{
+		std::cerr << "Cannot open device" << std::endl;
+		return 1;
+	}
+
+	std::cout << std::endl << "Sending " << this->packet_vect.size() << 
+			" packets one by one..." << std::endl;
+
+	// go over the vector of packets and send them one by one
+	for (auto pkt : this->packet_vect)
+	{
+		// send the packet. If fails exit the application
+		if (!dev->sendPacket(&pkt))
+		{
+			std::cerr << "Couldn't send packet" << std::endl;
+			return -1;
+		}
+	}
+	std::cout << this->packet_vect.size() << " packets sent" << std::endl;
+}
+
+int
+print_usage()
+{
+	
+}
+
+
+int
+main(int argc, char** argv)
 {
 	std::cout << "Dragoon Network 0.0.1" << std::endl;
+	
+	if(argc < 4){
+		std::cout << "Invalid arguments" << std::endl;
+	}		
 	return 0;
 }
