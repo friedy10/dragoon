@@ -5,6 +5,7 @@
 #include <thread>
 #include <vector>
 #include <stdlib.h>
+#include <getopt.h>
 #include <pcapplusplus/SystemUtils.h>
 #include <pcapplusplus/Packet.h>
 #include <pcapplusplus/EthLayer.h>

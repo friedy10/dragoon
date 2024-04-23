@@ -160,7 +160,15 @@ Network::send_packets(std::string interface_ip)
 int
 print_usage()
 {
-	
+	std::cout << "Usage: dragoon_network <option(s)> SOURCES\n\n"
+		<< "Options:\n"
+		<< "  -h, --help                   Show this help message\n"
+          	<< "  -m, --source-mac <MAC>       Specify the source MAC address\n"
+          	<< "  -d, --destination-mac <MAC>  Specify the destination MAC address\n"
+          	<< "  -s, --source-ip <IP>         Specify the source IP address\n"
+          	<< "  -i, --destination-ip <IP>    Specify the destination IP address\n"
+          	<< "  -p, --interface-ip [IP]      Specify the interface IP address (optional)\n"
+          	<< std::endl;
 }
 
 
@@ -169,8 +177,59 @@ main(int argc, char** argv)
 {
 	std::cout << "Dragoon Network 0.0.1" << std::endl;
 	
-	if(argc < 4){
-		std::cout << "Invalid arguments" << std::endl;
-	}		
+    	int c;
+    	int digit_optind = 0;
+
+
+	std::string src_mac, dest_mac, src_ip, dest_ip, inter_ip;
+
+   	for(;;) {
+        	int this_option_optind = optind ? optind : 1;
+        	int option_index = 0;
+        	static struct option long_options[] = {
+			{"source-mac",       required_argument, 0,  'm'},
+			{"destination-mac",  required_argument, 0,  'b'},
+			{"source-ip",  	     required_argument, 0,  'c'},
+			{"destination-ip",   required_argument, 0,  'd'},
+        	    	{"interface-ip",     optional_argument, 0,  'i'},
+        	    	{0,                  0,                 0,    0}
+        	};
+
+       		c = getopt_long(argc, argv, "m:d:s:i:p:", long_options, &option_index);
+        	if (c == -1){
+			print_usage();
+            		break;
+		}
+		
+       		switch (c) {
+       			case 'm':
+				src_mac = optarg;
+       			     	break;
+
+       			case 'b':
+				dest_mac = optarg;
+       			     	break;
+
+       			case 'c':
+				src_ip = optarg;
+       			     	break;
+
+       			case 'd':
+				dest_ip = optarg;
+       			     	break;
+       			case 'i':
+				inter_ip = optarg;
+       			     	break;
+
+       			case '?':
+       			     	break;
+
+       			default:
+				print_usage();
+       			     	printf("?? getopt returned character code 0%o ??\n", c);
+		}
+
+	}
+
 	return 0;
 }
